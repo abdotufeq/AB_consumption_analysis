@@ -6,6 +6,8 @@
 # folder of data
 data/
 processed/
+figures/
+images/
 
 # Session Data files
 .RData
