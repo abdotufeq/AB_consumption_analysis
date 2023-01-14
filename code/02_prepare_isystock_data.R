@@ -6,11 +6,11 @@ library(lubridate)
 library(glue)
 
 
-# choose ISYSTOCK data file 
-isystock_xlsx_file <- 
-  if(interactive() &&
+# choose ISYSTOCK data file
+isystock_xlsx_file <-
+  if (interactive() &&
      .Platform$OS.type == "windows")
-    choose.files() else 
+     choose.files() else
       file.choose()
 
 # import Isystock data
@@ -42,13 +42,13 @@ isy_data <-
     .groups = "drop"
     ) 
 # extract project name from the file path
-project.isy <- 
+project_isy <-
   str_replace(isystock_xlsx_file, ".*/(w*)", "") %>% 
   str_replace("\\.xlsx", "")
 
 # write the processed Isystock data to csv file in "processed" folder
 write.csv(
-  isy_data, 
-  glue("processed/{project.isy}_isy_data.csv"),
+  isy_data,
+  glue("processed/{project_isy}_isy_data.csv"),
   row.names = FALSE
   )

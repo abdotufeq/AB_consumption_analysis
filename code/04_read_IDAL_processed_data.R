@@ -1,56 +1,67 @@
 library(tidyverse)
 
-
-idal_isy <- 
+# read processed Isystock data
+idal_isy <-
   read.csv(
     "processed/Jun-Nov_IDAL_isy_data.csv"
   )
-
-idal_hmis<-
+# read processed HMIS data
+idal_hmis <-
   read.csv(
     "processed/Jun-Nov_PHCs_IDAL_hmis_data.csv"
   )
-
-sentinel_list <- 
+# read processed sentinel list data
+sentinel_list <-
   read.csv(
     "processed/sentinel.csv"
   )
 
-idal_wd_course_isy <-
-  idal_isy %>% 
+# keep the items we need only
+idal_course_isy <-
+  idal_isy %>%
+    # merge Isystock data with sentinel list by code
     inner_join(
       .,
       sentinel_list,
       by = "code"
     ) %>%
+    # calculate number of course of medication
     mutate(
       course = round(
         qt / rounded_course,
         digits = 2
       )
-    ) %>% 
+    ) %>%
+    # keep the columns we need in upcoming steps
     select(
       unite_dest, month, is_it_more_than_5,
-      admin_r, aware, atc_3, atc_4, code, course 
-    ) %>% 
+      admin_r, aware, atc_3, atc_4, code, course
+    ) %>%
+    # changing types of variables
+    mutate(
+      unite_dest = as.factor(unite_dest),
+      admin_r = as.factor(admin_r),
+      aware = as.factor(aware),
+      atc_3 = as.factor(atc_3)
+    )  %>%
+    # calculate total number of courses per each rank per facility per month
     pivot_longer(
       cols = c(
         admin_r, aware, atc_3, atc_4, code
       ),
-      names_to = "RK",
-      values_to = "LV"
-    ) %>% 
+      names_to = "rank_name",
+      values_to = "rank"
+    ) %>%
     group_by(
-      unite_dest, month, 
-      is_it_more_than_5, LV
-    ) %>% 
+      unite_dest, month,
+      is_it_more_than_5, rank
+    ) %>%
     summarise(
       value = sum(course),
       .groups = "drop"
-    ) %>% 
+    ) %>%
     pivot_wider(
-      names_from = LV,
+      names_from = rank,
       values_from = value,
       values_fill = 0
-    ) 
-    
+    )
