@@ -1,19 +1,20 @@
 library(tidyverse)
+library(here)
 
 # read processed Isystock data
 idal_isy <-
   read.csv(
-    "processed/Jun-Nov_IDAL_isy_data.csv"
+    here("processed/Jun-Nov_IDAL_isy_data.csv")
   )
 # read processed HMIS data
 idal_hmis <-
   read.csv(
-    "processed/Jun-Nov_PHCs_IDAL_hmis_data.csv"
+    here("processed/Jun-Nov_PHCs_IDAL_hmis_data.csv")
   )
 # read processed sentinel list data
 sentinel_list <-
   read.csv(
-    "processed/sentinel.csv"
+    here("processed/sentinel.csv")
   )
 
 # keep the items we need only
@@ -65,3 +66,4 @@ idal_course_isy <-
       values_from = value,
       values_fill = 0
     )
+

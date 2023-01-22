@@ -2,6 +2,7 @@ library(tidyverse)
 library(lubridate)
 library(readxl)
 library(glue)
+library(here)
 
 
 # list to harmonize facilities name between HMIS and ISYSTOCK
@@ -93,6 +94,6 @@ hmis_data <-
 # write the processed HMIS data to csv file in "processed" folder
 write.csv(
   hmis_data,
-  glue("processed/{project_hmis}_hmis_data.csv"),
+  glue(here("processed/{project_hmis}_hmis_data.csv")),
   row.names = FALSE
   )

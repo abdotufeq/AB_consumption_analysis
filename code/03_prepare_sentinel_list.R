@@ -1,6 +1,7 @@
 library(tidyverse)
 library(janitor)
 library(readxl)
+library(here)
 
 
 # choose the sentinel file from STD folder
@@ -32,6 +33,6 @@ PHC_sentinel_list <-
 
 write.csv(
   PHC_sentinel_list, 
-  "processed/sentinel.csv",
+  here("processed/sentinel.csv"),
   row.names = FALSE
   )

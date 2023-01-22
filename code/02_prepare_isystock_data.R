@@ -4,7 +4,7 @@ library(readxl)
 library(janitor)
 library(lubridate)
 library(glue)
-
+library(here)
 
 # choose ISYSTOCK data file
 isystock_xlsx_file <-
@@ -49,6 +49,6 @@ project_isy <-
 # write the processed Isystock data to csv file in "processed" folder
 write.csv(
   isy_data,
-  glue("processed/{project_isy}_isy_data.csv"),
+  glue(here("processed/{project_isy}_isy_data.csv")),
   row.names = FALSE
   )

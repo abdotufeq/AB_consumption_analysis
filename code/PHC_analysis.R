@@ -1,5 +1,4 @@
-source("code/04_read_IDAL_processed_data.R")
-
+library(here)
 library(skimr)
 library(ggtext)
 library(RColorBrewer)
@@ -8,6 +7,8 @@ library(plotly)
 library(GGally)
 library(scales)
 library(ggrepel)
+
+source(here("code/04_read_IDAL_processed_data.R"))
 
 
 
@@ -193,7 +194,7 @@ idal_aware_qty <-
 
 
 ggsave(
-  "figures/idal_quanities_Ab.png", 
+  here("figures/idal_quanities_Ab.png"), 
   idal_aware_qty, 
   width = 8, height = 4.5,
   dpi = 1080)
@@ -283,7 +284,7 @@ idal_aware_course <-
 
 
 ggsave(
-  "figures/idal_courses_Ab.png", 
+  here("figures/idal_courses_Ab.png"), 
   idal_aware_course, 
   width = 8, height = 4.5,
   dpi = 1080)
