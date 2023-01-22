@@ -1,6 +1,8 @@
 library(here)
 library(tidyverse)
 library(plotly)
+library(RColorBrewer)
+library(viridis)
 
 
 # defining function to plot the ratio of (Access, Watch and non AB)
@@ -287,3 +289,74 @@ plot_AB_consult <- function(df_isy, df_hmis, hf,age_cat){
     )
   return(p)
 }
+
+
+atc3_plot <- function(df_isy, hf, age_cat){
+  atc3_lst <- unique(sentinel_list$atc_3)
+  p <- 
+    df_isy %>%
+    select(
+      unite_dest, month, 
+      is_it_more_than_5, 
+      all_of(atc3_lst)
+    ) %>% 
+    filter(
+      is_it_more_than_5 == age_cat
+    ) %>%
+    select(-is_it_more_than_5) %>% 
+    pivot_longer(
+      cols = c(-unite_dest, -month),
+      names_to = "rank",
+      values_to = "qty",
+      values_drop_na = TRUE
+    ) %>%
+    filter(unite_dest == hf) %>%
+    group_by(
+      rank
+    ) %>%
+    plot_ly(
+      x = ~month
+    ) %>%
+    add_bars(
+      x = ~month,
+      y = ~qty,
+      split = ~rank,
+      text = ~paste0(
+        "Number of courses of<br>",
+        rank,
+        "<br>is :",
+        qty
+      ),
+      hoverinfo = "text"
+    ) %>% 
+    layout(
+      title = list(
+        text = ~paste0(
+          hf,
+          if_else(
+            age_cat,
+            "- 5 or more",
+            "- Under 5"
+          )
+        ),
+        x = 0.01,
+        font = list(
+          family = "Times New Roman",
+          color = I("black")
+        )
+      ),
+      xaxis = list(
+        title_text= "",
+        tickangle = -45,
+        tickmode = "array",
+        tickvals = c(1:12),
+        ticktext = month.name[1:12]
+      ),
+      yaxis = list(
+        title.text = "number of courses per month"
+      ),
+      showlegend = TRUE
+    ) 
+  return(p)
+}
+

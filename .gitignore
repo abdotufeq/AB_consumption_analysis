@@ -8,6 +8,7 @@ data/
 processed/
 figures/
 images/
+std/
 
 # Session Data files
 .RData
