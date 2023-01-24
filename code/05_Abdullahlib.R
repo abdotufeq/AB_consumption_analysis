@@ -249,7 +249,7 @@ plot_AB_consult <- function(df_isy, df_hmis, hf,age_cat){
       arrowcolor = I("grey"),
       bordercolor = I("grey"),
       showlegend = FALSE,
-      xshift = 25
+      xshift = 50
     ) %>% 
     layout(
       title = list(
