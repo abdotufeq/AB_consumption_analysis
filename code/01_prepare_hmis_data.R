@@ -15,7 +15,14 @@ c(
   "KAFR BONY PHC" = "Kafar Bonny PHC",
   "KAFR NASEH PHC" = "KAFER NASEH PHC",
   "Mashhad Ruhin PHC" = "Mashhed Ruhin PHC",
-  "TERMANIN PHC" = "Termanin PHC"
+  "TERMANIN PHC" = "Termanin PHC",
+  "AFRIN - AFRIN PHCC" = "AFRIN PHC",
+  "AFRIN - SHARAM MC" = "SHARRAN MC",
+  "AFRIN - SHARAN PHCC" = "SHARRAN PHC",
+  "Azzaz -  Mobile Clinic 1" = "AZAZ MC",
+  "AFRIN - BULBUL BemonC" = "BULBUL PHC",
+  "Azaz - Maree  Hospital" = "Marea PHC",
+  "AL BAB - Qabazin BemonC" = "QABBASIN PHC"
   )
 
 # choose HIMS data file
@@ -27,7 +34,7 @@ hmis_xls_file <-
 
 # extract project name from the file path
 project_hmis <-
-  str_replace(hmis_xls_file, ".*/(w*)", "") %>%
+  str_replace(hmis_xls_file, ".*\\\\", "") %>%
   str_replace("\\.xls", "")
 
 # import HMIS data
@@ -86,7 +93,8 @@ hmis_data <-
       `Antenatal Care`,
       `External Consultations`,
       `Postnatal Care`,
-      `Emergency Room`
+      `Emergency Room`,
+      `Gyn/Obs Ward`
     )
   ) %>%
   ungroup()

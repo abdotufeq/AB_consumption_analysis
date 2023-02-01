@@ -109,9 +109,11 @@ plot_access_watch <- function(df,hf,age_cat){
           hf, 
           if_else(
             age_cat, 
-            "- 5 or more", 
-            "- Under 5"
-          )
+            "- 5 years or more", 
+            "- Under 5 years"
+          ),
+          "<br>Access vs. Watch",
+          "<br>Target for Access is 70%"
         ),
         x = 0.01,
         font = list(
@@ -125,12 +127,11 @@ plot_access_watch <- function(df,hf,age_cat){
         #autotick = FALSE,
         tickmode = "array",
         tickvals = c(1:12),
-        ticktext = month.name[1:12]
+        ticktext = month.abb[1:12]
       ),
       yaxis = list(
         title.text = "number of courses per month"
-      ),
-      showlegend = FALSE
+      )
     ) %>%
     config(
       edits = list(
@@ -190,7 +191,7 @@ plot_AB_consult <- function(df_isy, df_hmis, hf,age_cat){
     plot_ly(x = ~month) %>%
     add_bars(
       y = ~total_consultation, 
-      name = "number of consultations",
+      name = "# of consultations",
       span = I(1),
       stroke = I("black"),
       color = I("blue"),
@@ -204,7 +205,7 @@ plot_AB_consult <- function(df_isy, df_hmis, hf,age_cat){
     ) %>% 
     add_bars(
       y = ~total_AB, 
-      name = "number of courses of all AB",
+      name = "# of courses of all AB",
       span = I(1),
       stroke = I("black"),
       color = I("red"),
@@ -218,7 +219,7 @@ plot_AB_consult <- function(df_isy, df_hmis, hf,age_cat){
     ) %>% 
     add_bars(
       y = ~not_AB, 
-      name = "number of Profen & Sytamol",
+      name = "# of courses of Profen & Sytamol",
       span = I(1),
       stroke = I("black"),
       color = I("grey"),
@@ -249,7 +250,7 @@ plot_AB_consult <- function(df_isy, df_hmis, hf,age_cat){
       arrowcolor = I("grey"),
       bordercolor = I("grey"),
       showlegend = FALSE,
-      xshift = 50
+      xshift = 40
     ) %>% 
     layout(
       title = list(
@@ -257,9 +258,10 @@ plot_AB_consult <- function(df_isy, df_hmis, hf,age_cat){
           hf, 
           if_else(
             age_cat, 
-            "- 5 or more", 
-            "- Under 5"
-          )
+            "- 5 Years or more", 
+            "- Under 5 Years" 
+          ),
+          "<br>Antibiotic percentage to # consultation"
         ),
         x = 0.01,
         font = list(
@@ -273,12 +275,11 @@ plot_AB_consult <- function(df_isy, df_hmis, hf,age_cat){
         #autotick = FALSE,
         tickmode = "array",
         tickvals = c(1:12),
-        ticktext = month.name[1:12]
+        ticktext = month.abb[1:12]
       ),
       yaxis = list(
         title.text = "count"
-      ),
-      showlegend = FALSE
+      )
     ) %>%
     config(
       edits = list(
@@ -350,13 +351,160 @@ atc3_plot <- function(df_isy, hf, age_cat){
         tickangle = -45,
         tickmode = "array",
         tickvals = c(1:12),
-        ticktext = month.name[1:12]
+        ticktext = month.abb[1:12]
       ),
       yaxis = list(
         title.text = "number of courses per month"
       ),
       showlegend = TRUE
     ) 
+  return(p)
+}
+
+# defining function to plot the ratio of injectables to oral 
+# will need 4 arguments df_isy dataframe containg course from isystock
+# df_hmis dataframe contining consultation data from HMIS
+# hf the health facility name and True for adult age group
+plot_AB_admn_consult <- function(df_isy, df_hmis, hf, age_cat){
+  p <- 
+    df_isy %>%
+    # filter(
+    #   not_AB == 0
+    # ) %>% 
+    select(
+      unite_dest, month, 
+      is_it_more_than_5, 
+      `O`, `P`
+    ) %>%
+    inner_join(
+      .,
+      df_hmis,
+      by = c(
+        "unite_dest" = "unit",
+        "month" = "month",
+        "is_it_more_than_5" = "is_it_more_than_5"
+      )
+    ) %>% 
+    filter(
+      is_it_more_than_5 == age_cat
+    ) %>%
+    group_by(
+      unite_dest, month
+    ) %>%
+    summarise(
+      `O` = sum(`O`),
+      `P` = sum(`P`),
+      total_AB_admin = sum(`O`, `P`),
+      O_per_cons = round(
+        100 * sum(`O`) / total_consultation ,0
+      ),
+      P_per_cons = round(
+        100 * sum(`P`) / total_consultation ,0
+      ),
+      total_consultation,
+      .groups = "drop"
+    ) %>%
+    filter(unite_dest == hf) %>%
+    plot_ly(x = ~month) %>%
+    add_bars(
+      y = ~total_consultation, 
+      name = "# of consultations",
+      span = I(1),
+      stroke = I("black"),
+      color = I("blue"),
+      text = ~paste0(
+        "Number of all consultations for<br>", 
+        month.name[month],
+        " is : ", 
+        total_consultation
+      ),
+      hoverinfo = "text"
+    ) %>% 
+    add_bars(
+      y = ~`O`, 
+      name = "# of courses of Oral AB",
+      span = I(1),
+      stroke = I("black"),
+      color = I("green"),
+      text = ~paste0(
+        "Number of oral AB cources for<br>", 
+        month.name[month],
+        " is : ", 
+        `O`
+      ),
+      hoverinfo = "text"
+    ) %>% 
+    add_bars(
+      y = ~`P`, 
+      name = "# of courses of Parenteral AB",
+      span = I(1),
+      stroke = I("black"),
+      color = I("darkred"),
+      text = ~paste0(
+        "Number of all Parenteral AB<br>courses for ", 
+        month.name[month],
+        "<br>is: ", 
+        `P`
+      ),
+      hoverinfo = "text"
+    ) %>%
+    add_annotations(
+      x = ~month,
+      y = ~`O`,
+      text = ~paste0(O_per_cons, "%"),
+      font = list(color = ("green")),
+      arrowcolor = I("green"),
+      bordercolor = I("green"),
+      xanchor = "center",
+      showlegend = FALSE
+    ) %>% 
+    add_annotations(
+      x = ~month,
+      y = ~`P`,
+      text = ~paste0(P_per_cons, "%"),
+      font = list(color = "darkred"),
+      xanchor = "left",
+      arrowcolor = I("darkred"),
+      bordercolor = I("darkred"),
+      showlegend = FALSE,
+      xshift = 50
+    ) %>% 
+    layout(
+      title = list(
+        text = ~paste0(
+          hf, 
+          if_else(
+            age_cat, 
+            "- 5 Years or more", 
+            "- Under 5 Years" 
+          ),
+          "<br>Administration route percentage to # consultation"
+        ),
+        x = 0.01,
+        font = list(
+          family = "Times New Roman",
+          color = I("black")
+        )
+      ),
+      xaxis = list(
+        title_text= "", 
+        tickangle = -45,
+        #autotick = FALSE,
+        tickmode = "array",
+        tickvals = c(1:12),
+        ticktext = month.abb[1:12]
+      ),
+      yaxis = list(
+        title.text = "count"
+      )
+    ) %>%
+    config(
+      edits = list(
+        annotationPosition = TRUE,
+        annotationTail = TRUE,
+        annotationText = TRUE
+      )
+    )
   return(p)
 }
 

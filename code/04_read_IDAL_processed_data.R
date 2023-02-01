@@ -4,12 +4,12 @@ library(here)
 # read processed Isystock data
 idal_isy <-
   read.csv(
-    here("processed/Jun-Nov_IDAL_isy_data.csv")
+    here("processed/Jan-Dec_IDAL_isy_data.csv")
   )
 # read processed HMIS data
 idal_hmis <-
   read.csv(
-    here("processed/Jun-Nov_PHCs_IDAL_hmis_data.csv")
+    here("processed/Jun-Dec_PHCs_IDAL_hmis_data.csv")
   )
 # read processed sentinel list data
 sentinel_list <-
