@@ -34,7 +34,11 @@ hmis_xls_file <-
 
 # extract project name from the file path
 project_hmis <-
-  str_replace(hmis_xls_file, ".*\\\\", "") %>%
+  if (interactive() &&
+      .Platform$OS.type == "windows")
+    str_replace(hmis_xls_file, ".*\\\\", "") %>%
+  str_replace("\\.xls", "") else
+      str_replace(hmis_xls_file, ".*\\/", "") %>%
   str_replace("\\.xls", "")
 
 # import HMIS data

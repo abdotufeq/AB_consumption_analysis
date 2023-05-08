@@ -508,3 +508,76 @@ plot_AB_admn_consult <- function(df_isy, df_hmis, hf, age_cat){
   return(p)
 }
 
+write_AB_consult <- function(df_isy, df_hmis){
+  p <- 
+    df_isy %>%
+    select(
+      unite_dest, month, 
+      is_it_more_than_5, 
+      Access, Watch, not_AB
+    ) %>%
+    inner_join(
+      .,
+      df_hmis,
+      by = c(
+        "unite_dest" = "unit",
+        "month" = "month",
+        "is_it_more_than_5" = "is_it_more_than_5"
+      )
+    ) %>% 
+    group_by(
+      unite_dest, month
+    ) %>%
+    summarise(
+      not_AB,
+      total_AB = sum(Access, Watch),
+      AB_per_consult = round(
+        100 * sum(total_AB) / total_consultation ,0
+      ),
+      anlg_cons = round(
+        100 * sum(not_AB) / total_consultation ,0
+      ),
+      Antenatal.Care,
+      External.Consultations,
+      Postnatal.Care,
+      Emergency.Room,
+      total_consultation,
+      is_it_more_than_5,
+      .groups = "drop"
+    )
+  write.xlsx(
+    p,
+    glue(here("processed/AB_cons.xlsx"))
+  )
+}
+
+
+write_access_watch <- function(df){
+  p <- 
+    df %>%
+    select(
+      unite_dest, month, 
+      is_it_more_than_5, 
+      Access, Watch
+    ) %>%
+    group_by(
+      unite_dest, month, is_it_more_than_5
+    ) %>%
+    summarise(
+      Access,
+      Watch,
+      total_AB = sum(Access, Watch),
+      access_percentage = round(
+        100 * sum(Access) / (sum(Access) + sum(Watch)),0
+      ),
+      watch_percentage = round(
+        100 * sum(Watch) / (sum(Access) + sum(Watch)),0 
+      ),
+      is_it_more_than_5,
+      .groups = "drop"
+    )
+  write.xlsx(
+    p,
+    glue(here("processed/AB_access_watch.xlsx"))
+  )
+}

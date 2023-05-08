@@ -43,7 +43,11 @@ isy_data <-
     ) 
 # extract project name from the file path
 project_isy <-
-  str_replace(isystock_xlsx_file, ".*\\\\", "") %>% 
+  if (interactive() &&
+      .Platform$OS.type == "windows")
+    str_replace(isystock_xlsx_file, ".*\\\\", "") %>% 
+  str_replace("\\.xlsx", "") else
+  str_replace(isystock_xlsx_file, ".*\\/", "") %>% 
   str_replace("\\.xlsx", "")
 
 # write the processed Isystock data to csv file in "processed" folder

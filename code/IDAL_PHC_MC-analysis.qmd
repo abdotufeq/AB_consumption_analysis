@@ -14,17 +14,17 @@ format:
     navigation-mode: vertical
     controls: true
     controls-layout: bottom-right
-    controls-tutorial: true 
+    controls-tutorial: true
     touch: true
     institute: "MSF - OCBA"
     output-file: "IDAL_presentation"
     fig-align: center
     fig-width: 10
-    fig-height: 6 
+    fig-height: 6
     transition: slide
     background-transition: fade
     #scrollable: true
-  
+
 embed-resources: true
 ---
 
@@ -1001,36 +1001,52 @@ ab_cns_pd[[2]] %>%
 
 ::: incremental
 1.  In general, there is a high rate of antibiotics consumption, this is even higher in **mobile activities and pediatric consultations**.
-2.  In some facilities, the number of Abx courses delivered is higher than the number of consultations. This needs investigation, beginning from assumptions about consultation registration in HMIS to Abx prescription habits.  
-3.  Overall, there is a high tendency to prescribe the Watch antibiotics group for pediatrics in all HFs. 
-4.  The ratio of antipyretic/analgesics to antibiotics is unexpected, this is especially true for Under 5 Years patients. 
+2.  In some facilities, the number of Abx courses delivered is higher than the number of consultations. This needs investigation, beginning from assumptions about consultation registration in HMIS to Abx prescription habits.\
+3.  Overall, there is a high tendency to prescribe the Watch antibiotics group for pediatrics in all HFs.
+4.  The ratio of antipyretic/analgesics to antibiotics is unexpected, this is especially true for Under 5 Years patients.
 :::
 
 ## Recommendations:
+
 ::: incremental
 1.  Investigate the practices for the HFs with higher ratio AB courses/consultations: reporting/inventory related issues could impact the analysis.
-2. Emphasize on the importance of respecting protocols and guidelines (fight against AB resistance, stock management: avoid shortage…).
-3. Syrup presentation should be kept in priority for small kids, less than 2 years old.
-4. Promote the use of new presentation: children, dispersible…
+2.  Emphasize on the importance of respecting protocols and guidelines (fight against AB resistance, stock management: avoid shortage...).
+3.  Syrup presentation should be kept in priority for small kids, less than 2 years old.
+4.  Promote the use of new presentation: children, dispersible...
 :::
 
-
 <!-- ```{r} -->
+
 <!-- # ab_admn_adlt <-  -->
+
 <!-- #   HF %>% -->
+
 <!-- #     map( -->
+
 <!-- #       .f = plot_AB_admn_consult, -->
+
 <!-- #       df_isy = idal_course_isy, -->
+
 <!-- #       df_hmis = idal_hmis, -->
+
 <!-- #       age_cat = TRUE -->
+
 <!-- #       ) -->
+
 <!-- # ab_admn_pd <-  -->
+
 <!-- #    HF %>% -->
+
 <!-- #     map( -->
+
 <!-- #       .f = plot_AB_admn_consult, -->
+
 <!-- #       df_isy = idal_course_isy, -->
+
 <!-- #       df_hmis = idal_hmis, -->
+
 <!-- #       age_cat = FALSE -->
+
 <!-- #       ) -->
 
 <!-- ``` -->
