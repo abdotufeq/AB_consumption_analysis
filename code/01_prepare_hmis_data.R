@@ -22,7 +22,11 @@ c(
   "Azzaz -  Mobile Clinic 1" = "AZAZ MC",
   "AFRIN - BULBUL BemonC" = "BULBUL PHC",
   "Azaz - Maree  Hospital" = "Marea PHC",
-  "AL BAB - Qabazin BemonC" = "QABBASIN PHC"
+  "AL BAB - Qabazin BemonC" = "QABBASIN PHC",
+  "Al Kindy Maternity Hospital" = "Al Kindy Mat Hospital",
+  "Daret Ezza PHC" = "Daret Ezzeh PHC",
+  "AFRIN - JANDARIS Maternity and Paediatric hospital" = "JANDARIS MATERNITY HOSPITAL",
+  "AFRIN - SHEIKH AL HADID PHCC" = "Shiekh Al Hadid PHC"
   )
 
 # choose HIMS data file
@@ -45,7 +49,15 @@ project_hmis <-
 hmis_data <-
   # read HMIS xls file
   read_excel(
-    hmis_xls_file
+    hmis_xls_file,
+    col_types = c("text", "text", "numeric", 
+                  "numeric", "numeric", "numeric", "numeric", 
+                  "numeric", "numeric", "numeric", "numeric", 
+                  "numeric", "numeric", "numeric", "numeric",
+                  "numeric", "numeric", "numeric", "numeric", 
+                  "numeric", "numeric", "numeric", "numeric", 
+                  "numeric", "numeric",  
+                  "numeric", "numeric", "numeric")
     ) %>%
   # rename columns without names
   rename(
@@ -59,11 +71,11 @@ hmis_data <-
     values_to = "nr_consultation",
     values_drop_na = TRUE
     ) %>%
-  # separate the age group from the month
+  # separate the age group from the month & year
   separate(
     month_cat,
-    c("month", "category"),
-    sep = " 2022 "
+    c("month", "year", "category", "limit", "y"),
+    sep = " "
     ) %>%
   mutate(
     # convert HMIS facilities names to ISYSTOCK ones
@@ -74,13 +86,13 @@ hmis_data <-
     month = match(month, month.name),
     # convert age group into logical variable
     is_it_more_than_5 = case_when(
-      category == ">= 5 y" ~ "TRUE",
-      category == "< 5 y" ~ "FALSE",
+      category == ">=" ~ "TRUE",
+      category == "<" ~ "FALSE",
       TRUE ~ "CHECK"
       ),
     is_it_more_than_5 = as.logical(is_it_more_than_5)
     ) %>%
-  select(-category)  %>%
+  select(-category, -limit, -y)  %>%
   # pivot the data so HF, month and age category become rowwise
   pivot_wider(
     names_from = consultation,
@@ -90,18 +102,16 @@ hmis_data <-
   # group then sum number of consultation to become
   # unique per for unit, month and age
   group_by(
-    unit, month, is_it_more_than_5
+    unit, year, month, is_it_more_than_5
   ) %>%
   mutate(
     total_consultation = sum(
       `Antenatal Care`,
       `External Consultations`,
       `Postnatal Care`,
-      `Emergency Room`,
-      `Gyn/Obs Ward`
+      `Emergency Room`
     )
-  ) %>%
-  ungroup()
+  ) %>% ungroup()
 
 # write the processed HMIS data to csv file in "processed" folder
 write.csv(
@@ -109,3 +119,4 @@ write.csv(
   glue(here("processed/{project_hmis}_hmis_data.csv")),
   row.names = FALSE
   )
+

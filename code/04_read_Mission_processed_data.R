@@ -4,12 +4,17 @@ library(here)
 # read processed Isystock data
 isy <-
   read.csv(
-    here("processed/Jan-Dec_Mission_isy_data.csv")
+    here("processed/2022-Jun-2023-Jun_Mission_isy_data.csv")
   )
 # read processed HMIS data
 hmis <-
   read.csv(
-    here("processed/Jun-Dec__PHCs__IDAL-NAP_hmis_data.csv")
+    here("processed/2022-Jun-2023-Jun__PHCs__IDAL-NAP_hmis_data.csv")
+  )
+# read processed HMIS data with morbidity
+hmis_mor <-
+  read.csv(
+    here("processed/2023-JAN-JUN__PHCs__IDAL-NAP_WithMorbiditiy_hmis_data_withmorbities.csv")
   )
 # read processed sentinel list data
 sentinel_list <-
@@ -35,7 +40,7 @@ sy_course_isy <-
     ) %>%
     # keep the columns we need in upcoming steps
     select(
-      unite_dest, month, is_it_more_than_5,
+      unite_dest, month, year, is_it_more_than_5,
       admin_r, aware, atc_3, atc_4, code, course
     ) %>%
     # changing types of variables
@@ -54,7 +59,7 @@ sy_course_isy <-
       values_to = "rank"
     ) %>%
     group_by(
-      unite_dest, month,
+      unite_dest, month, year,
       is_it_more_than_5, rank
     ) %>%
     summarise(
@@ -66,4 +71,3 @@ sy_course_isy <-
       values_from = value,
       values_fill = 0
     )
-

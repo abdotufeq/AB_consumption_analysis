@@ -12,15 +12,21 @@ plot_access_watch <- function(df,hf,age_cat){
   p <- 
     df %>%
     select(
-      unite_dest, month, 
+      unite_dest, month, year,
       is_it_more_than_5, 
       Access, Watch
     ) %>%
     filter(
       is_it_more_than_5 == age_cat
     ) %>%
+    mutate(
+      dt = make_date(year = as.numeric(year), month = as.numeric(month), day = 15)
+    )%>%
+    select(
+      -year, -month
+    ) %>%
     group_by(
-      unite_dest, month
+      unite_dest, dt
     ) %>%
     summarise(
       Access,
@@ -35,13 +41,14 @@ plot_access_watch <- function(df,hf,age_cat){
       .groups = "drop"
     ) %>%
     filter(unite_dest == hf) %>%
-    plot_ly(x = ~month) %>% 
+    plot_ly(x = ~dt) %>% 
     add_lines(
       y = ~total_AB, 
       name = "number of course of all AB",
       text = ~paste0(
         "number of all AB cources for<br>", 
-        month.name[month],
+        month.name[month(dt)], " - ",
+        year(dt),
         " is : ", 
         total_AB
       ),
@@ -55,11 +62,13 @@ plot_access_watch <- function(df,hf,age_cat){
       span = I(1),
       text = ~paste0(
         "Number of Watch group courses in<br>",
-        month.name[month],
-        "= ",
+        month.name[month(dt)], " - ",
+        year(dt),
+        " = ",
         Watch,
         "<br>the Watch group percenatge for<br>",
-        month.name[month],
+        month.name[month(dt)], " - ",
+        year(dt),
         " is: ",
         watch_percentage,
         "%"
@@ -74,11 +83,13 @@ plot_access_watch <- function(df,hf,age_cat){
       span = I(1),
       text = ~paste0(
         "Number of Access group courses in<br>",
-        month.name[month],
-        "= ",
+        month.name[month(dt)], " - ",
+        year(dt),
+        " = ",
         Access,
         "<br>the Access group percenatge for<br>",
-        month.name[month],
+        month.name[month(dt)], " - ",
+        year(dt),
         " is: ",
         access_percentage,
         "%"
@@ -86,22 +97,24 @@ plot_access_watch <- function(df,hf,age_cat){
       hoverinfo = "text"
     ) %>%
     add_text(
-      x = ~month,
+      x = ~dt,
       y = ~Access,
       text = ~paste0(access_percentage, "%"),
       textposition = "top right",
       color = I("green"),
       showlegend = FALSE,
-      size = I(9)
+      size = I(9),
+      hoverinfo = "none"
     ) %>%
     add_text(
-      x = ~month,
+      x = ~dt,
       y = ~Watch,
       text = ~paste0(watch_percentage, "%"),
       textposition = "top left",
       color = I("red"),
       showlegend = FALSE,
-      size = I(9)
+      size = I(9),
+      hoverinfo = "none"
     ) %>% 
     layout(
       title = list(
@@ -126,8 +139,10 @@ plot_access_watch <- function(df,hf,age_cat){
         tickangle = -45,
         #autotick = FALSE,
         tickmode = "array",
-        tickvals = c(1:12),
-        ticktext = month.abb[1:12]
+        tickvals = ~dt,
+        ticktext =  ~paste0(month.abb[month(dt)], " - ",
+          year(dt)
+        )
       ),
       yaxis = list(
         title.text = "number of courses per month"
@@ -150,15 +165,21 @@ mission_plot_access_watch <- function(df,age_cat){
   p <- 
     df %>%
     select(
-      month, 
+      month,year, 
       is_it_more_than_5, 
       Access, Watch
     ) %>%
     filter(
       is_it_more_than_5 == age_cat
     ) %>%
+    mutate(
+      dt = make_date(year = as.numeric(year), month = as.numeric(month), day = 15)
+    )%>%
+    select(
+      -year, -month
+    ) %>%
     group_by(
-      month
+      dt
     ) %>%
     summarise(
       Access = sum(Access),
@@ -173,13 +194,14 @@ mission_plot_access_watch <- function(df,age_cat){
       .groups = "drop"
     ) %>%
     unique() %>% 
-    plot_ly(x = ~month) %>% 
+    plot_ly(x = ~dt) %>% 
     add_lines(
       y = ~total_AB, 
       name = "number of course of all AB",
       text = ~paste0(
         "number of all AB cources for<br>", 
-        month.name[month],
+        month.name[month(dt)], " - ",
+        year(dt),
         " is : ", 
         total_AB
       ),
@@ -193,11 +215,13 @@ mission_plot_access_watch <- function(df,age_cat){
       span = I(1),
       text = ~paste0(
         "Number of Watch group courses in<br>",
-        month.name[month],
-        "= ",
+        month.name[month(dt)], " - ",
+        year(dt),
+        " = ",
         Watch,
         "<br>the Watch group percenatge for<br>",
-        month.name[month],
+        month.name[month(dt)], " - ",
+        year(dt),
         " is: ",
         watch_percentage,
         "%"
@@ -212,11 +236,13 @@ mission_plot_access_watch <- function(df,age_cat){
       span = I(1),
       text = ~paste0(
         "Number of Access group courses in<br>",
-        month.name[month],
-        "= ",
+        month.name[month(dt)], " - ",
+        year(dt),
+        " = ",
         Access,
         "<br>the Access group percenatge for<br>",
-        month.name[month],
+        month.name[month(dt)], " - ",
+        year(dt),
         " is: ",
         access_percentage,
         "%"
@@ -224,22 +250,24 @@ mission_plot_access_watch <- function(df,age_cat){
       hoverinfo = "text"
     ) %>%
     add_text(
-      x = ~month,
+      x = ~dt,
       y = ~Access,
       text = ~paste0(access_percentage, "%"),
       textposition = "top right",
       color = I("green"),
       showlegend = FALSE,
-      size = I(9)
+      size = I(9),
+      hoverinfo = "none"
     ) %>%
     add_text(
-      x = ~month,
+      x = ~dt,
       y = ~Watch,
       text = ~paste0(watch_percentage, "%"),
       textposition = "top left",
       color = I("red"),
       showlegend = FALSE,
-      size = I(9)
+      size = I(9),
+      hoverinfo = "none"
     ) %>%
     layout(
       title = list(
@@ -264,8 +292,10 @@ mission_plot_access_watch <- function(df,age_cat){
         tickangle = -45,
         #autotick = FALSE,
         tickmode = "array",
-        tickvals = c(1:12),
-        ticktext = month.abb[1:12]
+        tickvals = ~dt,
+        ticktext =  ~paste0(month.abb[month(dt)], " - ",
+                            year(dt)
+        )
       ),
       yaxis = list(
         title.text = "number of courses per month"
@@ -280,6 +310,7 @@ mission_plot_access_watch <- function(df,age_cat){
     )
   return(p)
 }
+
 # defining function to plot the ratio of (AB and analgesics to total consultaion)
 # will need 4 arguments df_isy dataframe containg course from isystock
 # df_hmis dataframe contining consultation data from HMIS
@@ -288,24 +319,31 @@ plot_AB_consult <- function(df_isy, df_hmis, hf,age_cat){
   p <- 
     df_isy %>%
     select(
-      unite_dest, month, 
+      unite_dest, month, year,
       is_it_more_than_5, 
       Access, Watch, not_AB
     ) %>%
+    mutate(
+      dt = make_date(year = as.numeric(year), month = as.numeric(month), day = 15)
+    )%>%
     inner_join(
       .,
       df_hmis,
       by = c(
         "unite_dest" = "unit",
         "month" = "month",
+        "year" = "year",
         "is_it_more_than_5" = "is_it_more_than_5"
       )
     ) %>% 
     filter(
       is_it_more_than_5 == age_cat
     ) %>%
+    select(
+      -year, -month
+    ) %>%
     group_by(
-      unite_dest, month
+      unite_dest, dt
     ) %>%
     summarise(
       not_AB,
@@ -324,7 +362,7 @@ plot_AB_consult <- function(df_isy, df_hmis, hf,age_cat){
       .groups = "drop"
     ) %>%
     filter(unite_dest == hf) %>%
-    plot_ly(x = ~month) %>%
+    plot_ly(x = ~dt) %>%
     add_bars(
       y = ~total_consultation, 
       name = "# of consultations",
@@ -333,7 +371,8 @@ plot_AB_consult <- function(df_isy, df_hmis, hf,age_cat){
       color = I("blue"),
       text = ~paste0(
         "Number of all consultations for<br>", 
-        month.name[month],
+        month.name[month(dt)], " - ",
+        year(dt),
         " is : ", 
         total_consultation
       ),
@@ -347,7 +386,8 @@ plot_AB_consult <- function(df_isy, df_hmis, hf,age_cat){
       color = I("red"),
       text = ~paste0(
         "Number of all AB cources for<br>", 
-        month.name[month],
+        month.name[month(dt)], " - ",
+        year(dt),
         " is : ", 
         total_AB
       ),
@@ -361,14 +401,15 @@ plot_AB_consult <- function(df_isy, df_hmis, hf,age_cat){
       color = I("grey"),
       text = ~paste0(
         "Number of all Profen &<br>Sytamol courses for ", 
-        month.name[month],
+        month.name[month(dt)], " - ",
+        year(dt),
         "<br>is: ", 
         not_AB
       ),
       hoverinfo = "text"
     ) %>%
     add_annotations(
-      x = ~month,
+      x = ~dt,
       y = ~total_AB,
       text = ~paste0(AB_per_consult, "%"),
       font = list(color = ("red")),
@@ -378,7 +419,7 @@ plot_AB_consult <- function(df_isy, df_hmis, hf,age_cat){
       showlegend = FALSE
     ) %>% 
     add_annotations(
-      x = ~month,
+      x = ~dt,
       y = ~not_AB,
       text = ~paste0(anlg_cons, "%"),
       font = list(color = "grey"),
@@ -386,7 +427,7 @@ plot_AB_consult <- function(df_isy, df_hmis, hf,age_cat){
       arrowcolor = I("grey"),
       bordercolor = I("grey"),
       showlegend = FALSE,
-      xshift = 33
+      xshift = 20
     ) %>% 
     layout(
       title = list(
@@ -410,8 +451,11 @@ plot_AB_consult <- function(df_isy, df_hmis, hf,age_cat){
         tickangle = -45,
         #autotick = FALSE,
         tickmode = "array",
-        tickvals = c(1:12),
-        ticktext = month.abb[1:12]
+        tickvals = ~dt,
+        ticktext = ~paste0(
+          month.name[month(dt)], " - ",
+          year(dt)
+        )
       ),
       yaxis = list(
         title.text = "count"
@@ -431,28 +475,235 @@ plot_AB_consult <- function(df_isy, df_hmis, hf,age_cat){
 # will need 4 arguments df_isy dataframe containg course from isystock
 # df_hmis dataframe contining consultation data from HMIS
 # hf the health facility name and True for adult age group
-mission_plot_AB_consult <- function(df_isy, df_hmis,age_cat){
+plot_AB_consult_mor <- function(df_isy, df_hmis, df_mor, hf,age_cat){
   p <- 
     df_isy %>%
     select(
-      unite_dest, month, 
+      unite_dest, month, year,
       is_it_more_than_5, 
       Access, Watch, not_AB
     ) %>%
+    mutate(
+      dt = make_date(year = as.numeric(year), month = as.numeric(month), day = 15)
+    )%>%
     inner_join(
       .,
       df_hmis,
       by = c(
         "unite_dest" = "unit",
         "month" = "month",
+        "year" = "year",
+        "is_it_more_than_5" = "is_it_more_than_5"
+      )
+    ) %>% 
+    inner_join(
+      .,
+      df_mor,
+      by = c(
+        "unite_dest" = "unit",
+        "month" = "month",
+        "year" = "year",
         "is_it_more_than_5" = "is_it_more_than_5"
       )
     ) %>% 
     filter(
       is_it_more_than_5 == age_cat
     ) %>%
+    select(
+      -year, -month
+    ) %>%
     group_by(
-      month
+      unite_dest, dt
+    ) %>%
+    summarise(
+      not_AB,
+      total_AB = sum(Access, Watch),
+      AB_per_consult = round(
+        100 * sum(total_AB) / total_consultation ,0
+      ),
+      anlg_cons = round(
+        100 * sum(not_AB) / total_consultation ,0
+      ),
+      total_AB = sum(Access, Watch),
+      AB_per_consult_mor = round(
+        100 * sum(total_AB) / total_consultation_morbidity ,0
+      ),
+      Antenatal.Care,
+      External.Consultations,
+      Postnatal.Care,
+      Emergency.Room,
+      LRTI = Lower.Respiratory.Tract.Infection,
+      URTI = Upper.Respiratory.Tract.Infection,
+      UTI = Urinary.tract.infection,
+      Other.infection = Other.infectious.and.parasitic.diseases,
+      total_consultation_morbidity,
+      total_consultation,
+      .groups = "drop"
+    ) %>%
+    filter(unite_dest == hf) %>%
+    plot_ly(x = ~dt) %>%
+    add_bars(
+      y = ~total_consultation_morbidity, 
+      name = "# of insctious cases",
+      span = I(1),
+      stroke = I("black"),
+      color = I("lightgreen"),
+      text = ~paste0(
+        "Number of all infectious cases for<br>", 
+        month.name[month(dt)], " - ",
+        year(dt),
+        " is : ", 
+        total_consultation_morbidity
+      ),
+      hoverinfo = "text"
+    ) %>%
+    add_bars(
+      y = ~total_AB, 
+      name = "# of courses of all AB",
+      span = I(1),
+      stroke = I("black"),
+      color = I("red"),
+      text = ~paste0(
+        "Number of all AB cources for<br>", 
+        month.name[month(dt)], " - ",
+        year(dt),
+        " is : ", 
+        total_AB
+      ),
+      hoverinfo = "text"
+    ) %>% 
+    add_annotations(
+      x = ~dt,
+      y = ~total_AB,
+      text = ~paste0(AB_per_consult_mor, "%"),
+      font = list(color = ("red")),
+      arrowcolor = I("red"),
+      bordercolor = I("red"),
+      xanchor = "center",
+      xshift = 20,
+      showlegend = FALSE
+    ) %>% 
+  add_lines(
+    y = ~URTI, 
+    name = "number of URTI cases",
+    text = ~paste0(
+      "number of URTIs for<br>", 
+      month.name[month(dt)], " - ",
+      year(dt),
+      " is : ", 
+      URTI
+    ),
+    hoverinfo = "text",
+    color = I("darkgreen"),
+    span = I(2),
+    stroke = I("black"),
+  ) %>% 
+    add_lines(
+      y = ~LRTI, 
+      name = "number of LRTI cases",
+      text = ~paste0(
+        "number of LRTIs for<br>", 
+        month.name[month(dt)], " - ",
+        year(dt),
+        " is : ", 
+        LRTI
+      ),
+      hoverinfo = "text",
+      color = I("darkred"),
+      span = I(2),
+      stroke = I("black")
+    ) %>% 
+    add_lines(
+      y = ~UTI, 
+      name = "number of UTI cases",
+      text = ~paste0(
+        "number of UTIs for<br>", 
+        month.name[month(dt)], " - ",
+        year(dt),
+        " is : ", 
+        UTI
+      ),
+      hoverinfo = "text",
+      color = I("darkviolet"),
+      span = I(2),
+      stroke = I("black")
+    ) %>% 
+    layout(
+      title = list(
+        text = ~paste0(
+          hf, 
+          if_else(
+            age_cat, 
+            "- 5 Years or more", 
+            "- Under 5 Years" 
+          ),
+          "<br>Antibiotic % to # infectious cases"
+        ),
+        x = 0.01,
+        font = list(
+          family = "Times New Roman",
+          color = I("black")
+        )
+      ),
+      xaxis = list(
+        title_text= "", 
+        tickangle = -45,
+        # autotick = TRUE,
+        tickmode = "array",
+        tickvals = ~dt,
+        ticktext = ~paste0(
+          month.name[month(dt)], " - ",
+          year(dt)
+        )
+      ),
+      yaxis = list(
+        title.text = "count"
+      )
+    ) %>%
+    config(
+      edits = list(
+        annotationPosition = TRUE,
+        annotationTail = TRUE,
+        annotationText = TRUE
+      )
+    )
+  return(p)
+}
+
+
+# defining function to plot the ratio of (AB and analgesics to total consultaion)
+# will need 4 arguments df_isy dataframe containg course from isystock
+# df_hmis dataframe contining consultation data from HMIS
+# hf the health facility name and True for adult age group
+mission_plot_AB_consult <- function(df_isy, df_hmis,age_cat){
+  p <- 
+    df_isy %>%
+    select(
+      unite_dest, month, year,
+      is_it_more_than_5, 
+      Access, Watch, not_AB
+    ) %>%
+    mutate(
+      dt = make_date(year = as.numeric(year), month = as.numeric(month), day = 15)
+    )%>%
+    inner_join(
+      .,
+      df_hmis,
+      by = c(
+        "unite_dest" = "unit",
+        "month" = "month",
+        "year" = "year",
+        "is_it_more_than_5" = "is_it_more_than_5"
+      )
+    ) %>% 
+    select(
+      -year, -month
+    ) %>%
+    filter(
+      is_it_more_than_5 == age_cat
+    ) %>%
+    group_by(
+      dt
     ) %>%
     summarise(
       not_AB = sum(not_AB),
@@ -470,7 +721,7 @@ mission_plot_AB_consult <- function(df_isy, df_hmis,age_cat){
       total_consultation = sum(total_consultation),
       .groups = "drop"
     ) %>%
-    plot_ly(x = ~month) %>%
+    plot_ly(x = ~dt) %>%
     add_bars(
       y = ~total_consultation, 
       name = "consultations",
@@ -479,7 +730,8 @@ mission_plot_AB_consult <- function(df_isy, df_hmis,age_cat){
       color = I("blue"),
       text = ~paste0(
         "Number of all consultations for<br>", 
-        month.name[month],
+         month.name[month(dt)], " - ",
+        year(dt),
         " is : ", 
         total_consultation
       ),
@@ -493,7 +745,8 @@ mission_plot_AB_consult <- function(df_isy, df_hmis,age_cat){
       color = I("red"),
       text = ~paste0(
         "Number of all AB cources for<br>", 
-        month.name[month],
+        month.name[month(dt)], " - ",
+        year(dt),
         " is : ", 
         total_AB
       ),
@@ -507,14 +760,15 @@ mission_plot_AB_consult <- function(df_isy, df_hmis,age_cat){
       color = I("grey"),
       text = ~paste0(
         "Number of all Profen &<br>Sytamol courses for ", 
-        month.name[month],
+        month.name[month(dt)], " - ",
+        year(dt),
         "<br>is: ", 
         not_AB
       ),
       hoverinfo = "text"
     ) %>%
     add_annotations(
-      x = ~month,
+      x = ~dt,
       y = ~total_AB,
       text = ~paste0(AB_per_consult, "%"),
       font = list(color = ("red")),
@@ -524,7 +778,7 @@ mission_plot_AB_consult <- function(df_isy, df_hmis,age_cat){
       showlegend = FALSE
     ) %>% 
     add_annotations(
-      x = ~month,
+      x = ~dt,
       y = ~not_AB,
       text = ~paste0(anlg_cons, "%"),
       font = list(color = "grey"),
@@ -556,8 +810,12 @@ mission_plot_AB_consult <- function(df_isy, df_hmis,age_cat){
         tickangle = -45,
         #autotick = FALSE,
         tickmode = "array",
-        tickvals = c(1:12),
-        ticktext = month.abb[1:12]
+        tickvals = ~dt,
+        ticktext = ~paste0(
+          month.name[month(dt)], 
+          " - ", 
+          year(dt)
+          )
       ),
       yaxis = list(
         title.text = "count"

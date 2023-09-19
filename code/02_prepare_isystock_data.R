@@ -17,7 +17,8 @@ isystock_xlsx_file <-
 isy_data <- 
   # read Isystock xlsx file
   read_excel(
-    isystock_xlsx_file
+    isystock_xlsx_file,
+    col_types = c()
     ) %>%
   clean_names() %>%
   # choose regular donation only
@@ -26,16 +27,18 @@ isy_data <-
     ) %>% 
   # extract the month from date column 
   mutate(
-    month = month(date)
+    date = as.Date(date,  format = "%d/%m/%Y"),
+    month = month(date),
+    year = year(date)
     ) %>% 
   # keep only information we need
   select(
-    code, month, 
+    code, month, year,
     unite_dest, qt
     ) %>% 
   # sum all quantities per item per month per facility
   group_by(
-    code, month, unite_dest
+    code, month, year, unite_dest
     ) %>% 
   summarise(
     qt = sum(qt),

@@ -1,0 +1,2392 @@
+---
+title: Antibiotics in PHCs & MCs<br>OCBA - SYRIA Mission
+subtitle: "Analyzing supplies of antibiotics from June to December 2023 against the data extracted from HMIS"
+date: "15, May 2023"
+#author: "Dr. Zyad Ejjilat<br>Abdullah Almohammed"
+format: 
+  revealjs:
+    auto-stretch: false
+    preview-links: true
+    slide-number: true
+    logo: ..\images\Doctorswithoutborders.jpg
+    footer: "Syria Mission's PHC and MC Antibiotics analysis"
+    css: styles.css
+    navigation-mode: vertical
+    controls: true
+    controls-layout: bottom-right
+    controls-tutorial: true 
+    touch: true
+    institute: "MSF - OCBA - SYRIA Mission"
+    output-file: "OCBA_SY_PHC_MC_AB_presentation"
+    fig-align: center
+    fig-width: 10
+    fig-height: 6 
+    transition: slide
+    background-transition: fade
+    #scrollable: true
+  
+embed-resources: true
+editor: visual
+---
+
+# Context
+
+::: incremental
+1.  Armed conflict with lots of displacements
+2.  Working through partnership of DoH and local NGOs (MSF is NOT the direct implementer of services).
+3.  Two projects: IDAL and NAP
+4.  Supporting PHCs, MCs, BEmONCs and CEmONCs
+5.  Regular monthly medical donations based on the facilities consumption
+6.  AMR and Antibiotics over-prescribing are quiet spread in Syria
+:::
+
+# objectives
+
+::: incremental
+1.  Evaluate the antibiotic usage:\
+    is there Antibiotics over-prescribing in Facilities? where? how much? how often?
+2.  Evaluate the rational prescribing behavior:\
+    are first line of ABs prescribed (Access group) or skipped to second line (Watch group) immediately?
+3.  Double check the balance between antipyretic courses and antibiotics courses?
+:::
+
+# Data resources
+
+::: incremental
+-   Monthly donations extracted from Isystock (it is based on the facilities monthly consumption)
+-   Export HMIS data for all health facilities (HF) for concerned period.
+-   **Age**:
+    -   Under 5 years U5.
+    -   5 years or more O5.
+-   **consultation categories**:
+    -   Total consultations.
+:::
+
+# Parameters
+
+::: incremental
+1.  define the Antibiotics list in the mission and its category based on WHO AWaRE categorization (Access, Watch)
+2.  define Age categories of those medications:
+    -   Under 5 years U5 (pediatrics: Suspension, Syrups, dispersible tablets and pediatrics injectables
+    -   5 years or more O5: Tablets and injectables for adult
+:::
+
+## 
+
+::: incremental
+3.  Define the Duration of treatment based on MSF[^1] (the average duration of treatment of the main indication of the drug)
+4.  [WHO DDD](https://www.whocc.no/atc_ddd_index/): Daily defined dose is the assumed average maintenance dose (grams) per day for a drug used for its main indication in adults.
+5.  Calculation of number of units of medication per course
+    -   Under 5 years U5:\
+        each bottle of suspension or syrup are 1 course.
+:::
+
+[^1]: from both Clinical guidelines and Essential Medicines
+
+## 
+
+::: incremental
+-   5 years or more O5:\
+    DDD \* DoT / (dose of medication per unit in grams) Amoxicillin 500 mg =\>\
+    DDD is 1.5 gram =\> duration of treatment is between 5 to 7 days =\>\
+    7 (duration of treatment)\* 1.5 (DDD)/ 0.5 (dose of medicine per unit in grams) = 21 tablets\
+    Amoxicillin 500mgcourse is 21 tablets.\
+:::
+
+## Access group antibiotics
+
+```{r}
+#| include: false
+
+library(tidyverse)
+library(plotly)
+library(purrr)
+library(glue)
+library(lubridate)
+library(kableExtra)
+library(here)
+library(xlsx)
+
+access_lst <-
+read.xlsx(
+  here("std/antibiotics.xlsx"),
+  sheetName = "PHC"
+) %>%
+mutate(
+  Age = if_else(is_it_more_than_5== "TRUE", "5 years or more", "Under 5 years"),
+  unit_per_course = rounded_course
+) %>%
+select(
+  Code, Article, DDD, U, AWaRe, Age, unit_per_course
+) %>%
+filter(
+  AWaRe == "Access"
+)
+watch_lst <-
+read.xlsx(
+  here("std/antibiotics.xlsx"),
+  sheetName = "PHC"
+) %>%
+mutate(
+  Age = if_else(is_it_more_than_5== "TRUE", "5 years or more", "Under 5 years"),
+  unit_per_course = rounded_course
+) %>%
+select(
+  Code, Article, DDD, U, AWaRe, Age, unit_per_course
+) %>%
+filter(
+  AWaRe == "Watch"
+)
+
+```
+
+```{r}
+access_lst %>% kbl() %>%
+ kable_styling(
+   bootstrap_options = c("striped", "hover", "condensed"),
+   font_size = 15,
+   html_font = "Cambria"
+     )
+```
+
+## Watch group antibiotics
+
+```{r}
+watch_lst %>% kbl() %>%
+ kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
+               font_size = 16,
+               html_font = "Cambria")
+```
+
+```{r}
+#| include: false
+source(here("code/04_read_Mission_processed_data.R"))
+source(here("code/05_Abdullahlib.R"))
+
+sy_course_isy <-
+  sy_course_isy %>% 
+  filter(
+    unite_dest != "Mental Health Activity" &
+      unite_dest != "Staff Health"
+    ) 
+
+HFs <- unique(sy_course_isy$unite_dest)
+
+
+
+    
+adult <- 
+  HFs %>%
+    map(
+      .f = plot_access_watch,
+      df = sy_course_isy,
+      age_cat = TRUE
+      )
+paed <- 
+   HFs %>%
+    map(
+      .f = plot_access_watch,
+      df = sy_course_isy,
+      age_cat = FALSE
+      )
+
+```
+
+```{r}
+#| include: false
+
+
+xx <-
+  sy_course_isy %>% 
+  inner_join(
+    .,
+    hmis,
+    by = c("unite_dest" = "unit")
+    ) %>%
+   inner_join(
+    .,
+    hmis_mor,
+    by = c("unite_dest" = "unit")
+    )
+  
+
+HF <- unique(xx$unite_dest) 
+remove(xx)
+
+ab_cns_adlt_mor <- 
+  HF %>%
+    map(
+      .f = plot_AB_consult_mor,
+      df_isy = sy_course_isy,
+      df_hmis = hmis,
+      df_mor = hmis_mor,
+      age_cat = TRUE
+      )
+ab_cns_pd_mor <- 
+   HF %>%
+    map(
+      .f = plot_AB_consult_mor,
+      df_isy = sy_course_isy,
+      df_hmis = hmis,
+      df_mor = hmis_mor,
+      age_cat = FALSE
+      )
+ab_cns_adlt <- 
+  HF %>%
+    map(
+      .f = plot_AB_consult,
+      df_isy = sy_course_isy,
+      df_hmis = hmis,
+      age_cat = TRUE
+      )
+ab_cns_pd <- 
+   HF %>%
+    map(
+      .f = plot_AB_consult,
+      df_isy = sy_course_isy,
+      df_hmis = hmis,
+      age_cat = FALSE
+      )
+
+```
+
+# Antibiotic Mission view
+
+## 
+
+```{r}
+#| fig-subcap: "Mission's ratio of Access to Watch - **5 years or more**"
+
+mission_plot_access_watch(sy_course_isy, TRUE)%>%
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+
+```
+
+## 
+
+```{r}
+#| fig-subcap: "Mission's Percentage of Antibiotics & Antipyrretics to consultations - **5 years or more**"
+
+mission_plot_AB_consult(sy_course_isy,hmis, TRUE) %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "Mission's ratio of Access to Watch - **Under 5 years**"
+
+mission_plot_access_watch(sy_course_isy, FALSE) %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "Mission's Percentage of Antibiotics & Antipyrretics to consultations - **Under 5 years**"
+
+
+mission_plot_AB_consult(sy_course_isy,hmis, FALSE) %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+::: incremental
+-   there is a downtrend in Antibiotic consumption in category 5 Years and more throughout the analysis period. (improvement)
+
+-   the consultation rate is almost stable of category 5 years and more. (improvement)
+
+-   the trend of antibiotic consumption of category under 5 years is stable somehow. (neutral)
+
+-   ratio of Watch group to Access group is still high in under 5. (neutral)
+
+-   rate of Antibiotic consumption in Under 5 years is almost double the 5 years and more. (neutral)
+:::
+
+# Access vs Watch AB
+
+## IDAL Project view
+
+## 
+
+```{r}
+#| fig-subcap: "steep drop in consuption of AB in last summer season the stable low consmption of AB, Accepted ratio (Access to Watch)"
+
+adult[[2]] %>%  
+  layout(
+    legend = list(
+      x= 0.8,
+      y=1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=15, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "surge in Watch ratio (Access to Watch) since starting supporting the NICU in Dec"
+
+paed[[2]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=15, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "decline in AB consumption (look suspiciously low in last 6 months)"
+
+adult[[18]] %>%  
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=15, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "there is downtrend in total without any change in the ratio (Access to Watch)"
+
+paed[[18]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=15, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "there is steep decline in AB consumption since the Earthquake in Feb"
+
+adult[[7]] %>%  
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=15, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "steep decline in watch group since Feb (investagation is needed)"
+
+paed[[7]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=15, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "uptrend in AB consumption with two Surges (Feb and Apr), to improve the ratio (Access to Watch)"
+
+adult[[12]] %>%  
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=15, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "uptrend in AB consumption since Jan, the ratio (Access to Watch) needs improvement"
+
+paed[[12]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=15, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "ratio (Access to Watch) needs improvements"
+
+adult[[5]] %>%  
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=15, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-cap: "ratio (Access to Watch) needs improvements, **suspicioius surge in Jun**"
+
+paed[[5]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=15, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "downtrend since Dec, good ratio (Access to Watch) also"
+
+adult[[13]] %>%  
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=15, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "stable AB consumption and good ratio (Access to watch)"
+
+paed[[13]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=15, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "downtrend and improvement in AB consumption and ratio (Access to Watch)"
+
+adult[[19]] %>%  
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=15, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "decline in AB since Apr with good ratio (Access to Watch) overall"
+
+paed[[19]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=15, color=I("black")
+        )
+      )
+    )
+```
+
+## NAP Project view
+
+## 
+
+```{r}
+#| fig-subcap: "ratio of (Access to Watch) close to each others, two surges one in Feb EQ and the other last summer"
+
+adult[[6]] %>%  
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=15, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "stable AB consumption with surge in Feb EQ, the ratio (Access to Watch) needs improvement"
+
+paed[[6]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=15, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "Inverted ratio (Access to Watch), Investigate"
+
+adult[[11]] %>%  
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=15, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "ratio (Access to Watch) needs improvements, Investage Oct surge"
+
+adult[[14]] %>%  
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=15, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "Inverted Ratio (Access to Watch), Investage"
+
+paed[[14]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=15, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "uptrend in watch (CLOSED)"
+
+adult[[1]] %>%  
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=15, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "acceptable ratio (Access to Watch) (CLOSED)"
+
+paed[[1]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=15, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "high fluctuations in AB and the ratio (Access to Watch)"
+
+adult[[4]] %>%  
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=15, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "fluctuation in AB and ratio (Access to Watch)"
+
+paed[[4]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=15, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "increase in watch in last three months (almost inverted ratio)"
+
+adult[[16]] %>%  
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=15, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "acceptable ratio (Access to Watch)"
+
+paed[[16]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=15, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "acceptable ratio (Access to Watch)"
+
+adult[[15]] %>%  
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=15, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "acceptable ratio (Access to Watch)"
+
+paed[[15]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=15, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "high ratio of Watch (equal)"
+
+adult[[3]] %>%  
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=15, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-cap: "good ratio (Access to Watch)"
+
+paed[[3]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=15, color=I("black")
+        )
+      )
+    )
+```
+
+# Percentage of AB prescription to consultation
+
+## IDAL project view
+
+## 
+
+```{r}
+#| fig-subcap: "very good cooporation and response"
+
+ab_cns_adlt[[2]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "since Jan they stoped collecting paed data only from NICU"
+
+ab_cns_pd[[2]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "very good ratios"
+
+ab_cns_adlt[[15]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "good ratio"
+
+ab_cns_pd[[15]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "decline in AB ratio since Feb, WHY?"
+
+ab_cns_adlt[[7]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "high consumption of AB in winter months and less, invistgate April surge in antipyrrtic"
+
+ab_cns_pd[[7]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "this PHC is growing in all terms (consultations and consumption)"
+
+ab_cns_adlt[[9]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "very high consumption since March (almost evey chil is given AB and antipyretic"
+
+ab_cns_pd[[9]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "new facility, good ratio"
+
+ab_cns_adlt[[5]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "new facility, Investigate June data"
+
+ab_cns_pd[[5]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "there is noticeable imporvement and still there window for more improvement"
+
+ab_cns_adlt[[10]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "NO noticicable improvement (need strict actions)"
+
+ab_cns_pd[[10]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "AB consumption is improving"
+
+ab_cns_adlt[[16]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1, 
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "good improvement and ther is still a window for more"
+
+ab_cns_pd[[16]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## NAP Project view
+
+## 
+
+```{r}
+#| fig-subcap: "good ratio"
+
+ab_cns_adlt[[6]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "good ratio"
+
+ab_cns_pd[[6]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "good ratio"
+
+ab_cns_adlt[[8]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "good ratio"
+
+ab_cns_adlt[[11]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "unstable nr of consultaion, to check the data?"
+
+ab_cns_pd[[11]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "good ratio, CLOSED"
+
+ab_cns_adlt[[1]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "always growing consumption, CLOSED"
+
+ab_cns_pd[[1]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "good ratio"
+
+ab_cns_adlt[[4]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "good ratio, investagate Feb surge"
+
+ab_cns_pd[[4]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "good ratio"
+
+ab_cns_adlt[[13]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "good ratio, check last months surge in antipyretics"
+
+ab_cns_pd[[13]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "good ratio"
+
+ab_cns_adlt[[12]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "acceptable ratio, investigate last 2 months surge"
+
+ab_cns_pd[[12]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "good ratio"
+
+ab_cns_adlt[[3]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "very high AB consumption rate"
+
+ab_cns_pd[[3]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+# Percentage of AB prescription to infectious cases
+
+## IDAL project view
+
+## 
+
+```{r}
+#| fig-subcap: "very good cooporation and response"
+
+ab_cns_adlt_mor[[2]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "since Jan they stoped collecting paed data only from NICU"
+
+ab_cns_pd_mor[[2]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "very good ratios"
+
+ab_cns_adlt_mor[[15]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "good ratio"
+
+ab_cns_pd_mor[[15]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "decline in AB ratio since Feb, WHY?"
+
+ab_cns_adlt_mor[[7]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "high consumption of AB in winter months and less, invistgate April surge in antipyrrtic"
+
+ab_cns_pd_mor[[7]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "this PHC is growing in all terms (consultations and consumption)"
+
+ab_cns_adlt_mor[[9]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "very high consumption since March (almost evey chil is given AB and antipyretic"
+
+ab_cns_pd_mor[[9]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "new facility, good ratio"
+
+ab_cns_adlt_mor[[5]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "new facility, Investigate June data"
+
+ab_cns_pd_mor[[5]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "there is noticeable imporvement and still there window for more improvement"
+
+ab_cns_adlt_mor[[10]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "NO noticicable improvement (need strict actions)"
+
+ab_cns_pd_mor[[10]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "AB consumption is improving"
+
+ab_cns_adlt_mor[[16]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1, 
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "good improvement and ther is still a window for more"
+
+ab_cns_pd_mor[[16]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## NAP Project view
+
+## 
+
+```{r}
+#| fig-subcap: "good ratio"
+
+ab_cns_adlt_mor[[6]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "good ratio"
+
+ab_cns_pd_mor[[6]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "good ratio"
+
+ab_cns_adlt_mor[[9]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "good ratio"
+
+ab_cns_adlt_mor[[11]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "unstable nr of consultaion, to check the data?"
+
+ab_cns_pd_mor[[11]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "good ratio, CLOSED"
+
+ab_cns_adlt_mor[[1]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "always growing consumption, CLOSED"
+
+ab_cns_pd_mor[[1]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "good ratio"
+
+ab_cns_adlt_mor[[4]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "good ratio, investagate Feb surge"
+
+ab_cns_pd_mor[[4]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "good ratio"
+
+ab_cns_adlt_mor[[13]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "good ratio, check last months surge in antipyretics"
+
+ab_cns_pd_mor[[13]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "good ratio"
+
+ab_cns_adlt_mor[[12]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "acceptable ratio, investigate last 2 months surge"
+
+ab_cns_pd_mor[[12]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "good ratio"
+
+ab_cns_adlt_mor[[3]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+## 
+
+```{r}
+#| fig-subcap: "very high AB consumption rate"
+
+ab_cns_pd_mor[[3]] %>% 
+  layout(
+    legend = list(
+      x= 0.8,
+      y= 1.1,
+      xanchor='center',
+      yanchor='top',
+      bgcolor= 'rgba(0,0,0,0)',
+      bordercolor = I("black"),
+      borderwidth = 1,
+      orientation = 'h',
+      font=list(
+        size=10, color=I("black")
+        )
+      )
+    )
+```
+
+# Observation & Recommendations
+
+## Observations:
+
+::: incremental
+:::
+
+## Recommendations:
+
+::: incremental
+:::
