@@ -544,7 +544,7 @@ plot_AB_consult_mor <- function(df_isy, df_hmis, df_mor, hf,age_cat){
     plot_ly(x = ~dt) %>%
     add_bars(
       y = ~total_consultation_morbidity, 
-      name = "# of insctious cases",
+      name = "# of infectious cases",
       span = I(1),
       stroke = I("black"),
       color = I("lightgreen"),
@@ -580,7 +580,7 @@ plot_AB_consult_mor <- function(df_isy, df_hmis, df_mor, hf,age_cat){
       arrowcolor = I("red"),
       bordercolor = I("red"),
       xanchor = "center",
-      xshift = 20,
+      xshift = 15,
       showlegend = FALSE
     ) %>% 
   add_lines(
