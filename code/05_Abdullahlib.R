@@ -471,10 +471,11 @@ plot_AB_consult <- function(df_isy, df_hmis, hf,age_cat){
   return(p)
 }
 
-# defining function to plot the ratio of (AB and analgesics to total consultaion)
-# will need 4 arguments df_isy dataframe containg course from isystock
+# defining function to plot the ratio of (AB to total infectious cases)
+# will need 5 arguments df_isy dataframe containg course from isystock
 # df_hmis dataframe contining consultation data from HMIS
-# hf the health facility name and True for adult age group
+# df_mor dataframe contining infectious morbities data from HMIS
+# hf the health facility name/number and True for adult age group
 plot_AB_consult_mor <- function(df_isy, df_hmis, df_mor, hf,age_cat){
   p <- 
     df_isy %>%
@@ -670,6 +671,291 @@ plot_AB_consult_mor <- function(df_isy, df_hmis, df_mor, hf,age_cat){
   return(p)
 }
 
+# defining function to plot the ratio of (AB and analgesics to total consultaion)
+# will need 4 arguments df_isy dataframe containg course from isystock
+# df_hmis dataframe contining consultation data from HMIS
+# hf the health facility name and True for adult age group
+plot_all <- function(df_course_isy_m, df_hmis, df_hmis_mor, hf,age_cat, min_y, max_y){
+  
+  cleaned_df <-
+    df_course_isy_m %>%
+    select(
+      unite_dest, month, year,
+      is_it_more_than_5, 
+      Access, Watch, not_AB
+    ) %>%
+    mutate(
+      Access = round(Access),
+      Watch = round(Watch),
+      not_AB = round(not_AB)
+    ) %>% 
+    mutate(
+      dt = make_date(year = as.numeric(year), month = as.numeric(month), day = 15)
+    ) %>% 
+    filter(dt > '2022-06-01') %>%
+    filter(dt < '2023-07-01') %>% 
+    inner_join(
+      .,
+      df_hmis,
+      by = c(
+        "unite_dest" = "unit",
+        "month" = "month",
+        "year" = "year",
+        "is_it_more_than_5" = "is_it_more_than_5"
+      )
+    ) %>% 
+    inner_join(
+      .,
+      df_hmis_mor,
+      by = c(
+        "unite_dest" = "unit",
+        "month" = "month",
+        "year" = "year",
+        "is_it_more_than_5" = "is_it_more_than_5"
+      )
+    ) %>% 
+    filter(
+      is_it_more_than_5 == age_cat
+    ) %>%
+    select(
+      -year, -month
+    ) %>%
+    rename(
+      unit = unite_dest
+    ) %>% 
+    group_by(
+      unit, dt
+    ) %>%
+    summarise(
+      not_AB,
+      total_AB = sum(Access, Watch),
+      AB_per_consult = round(
+        100 * sum(total_AB) / total_consultation ,0
+      ),
+      anlg_cons = round(
+        100 * sum(not_AB) / total_consultation ,0
+      ),
+      AB_per_consult_mor = round(
+        100 * sum(total_AB) / total_consultation_morbidity ,0
+      ),
+      Access, 
+      Watch,
+      ANC = Antenatal.Care,
+      ExtCons = External.Consultations,
+      PNC = Postnatal.Care,
+      ERCons = Emergency.Room,
+      LRTI = Lower.Respiratory.Tract.Infection,
+      URTI = Upper.Respiratory.Tract.Infection,
+      UTI = Urinary.tract.infection,
+      Other = Other.infectious.and.parasitic.diseases,
+      total_consultation_morbidity,
+      total_consultation,
+      .groups = "drop"
+    ) %>%
+    filter(unit == hf)
+  
+  
+  long_morbidity_df <-
+    cleaned_df %>% 
+    select(
+      unit, dt, LRTI, URTI, UTI
+    ) %>% 
+    pivot_longer(
+      .,
+      cols = c(
+        LRTI, URTI, UTI
+      ),
+      names_to = "morbidity",
+      values_to = "nr",
+      values_drop_na = TRUE
+    ) %>%
+    group_by(
+      unit, dt
+    ) %>% 
+    reframe(
+      morbidity,
+      nr,
+      labelHeight = cumsum(nr) - nr/2
+    ) 
+  
+  
+  long_antibiotic_df <-
+    cleaned_df %>% 
+    select(
+      unit, dt, total_AB, Access, Watch
+    ) %>% 
+    mutate(
+      dt = dt + 5
+    ) %>% 
+    pivot_longer(
+      cols = c(Access, Watch),
+      names_to = "Ab_cat",
+      values_to = "AB"
+    ) %>% 
+    group_by(
+      unit, dt
+    ) %>% 
+    reframe(
+      total_AB,
+      Ab_cat,
+      AB,
+      labelHeight = cumsum(AB) - AB/2
+    )
+  
+  analgesics_df <-
+    cleaned_df %>% 
+    mutate(
+      dt = dt + 10
+    )
+  
+  fig <-
+    cleaned_df %>% 
+    mutate(
+      dt = dt - 6
+    ) %>% 
+    plot_ly(x = ~dt) %>%
+    add_bars(
+      y = ~total_consultation, 
+      name = "# of consultations",
+      span = I(1),
+      stroke = I("black"),
+      color = I("blue"),
+      text = ~paste0(
+        total_consultation
+      ),
+      textposition = "outside",
+      hoverinfo = "none",
+      showlegend = TRUE,
+      width = 777000000,
+      offset = -432000000,
+      opacity = 0.95
+    ) %>% 
+    # add_lines(
+    #   data = non_AB,
+    #   y = ~not_AB,
+    #   name = "# of courses of<br>Profen & Sytamol",
+    #   span = I(1),
+    #   stroke = I("black"),
+    #   color = I("darkgreen"),
+    #   text = ~paste0(
+    #     not_AB, " courses of Analgesics"
+    #   ),
+    #   showlegend = TRUE,
+  #   textposition = "outside",
+  #   hoverinfo = "text",
+  # ) %>%
+  layout(
+    title = list(
+      text = ~paste0(
+        hf, 
+        if_else(
+          age_cat, 
+          "- 5 Years or more", 
+          "- Under 5 Years" 
+        ),
+        "<br>Antibiotic vs. HMIS data"
+      ),
+      x = 0.01,
+      font = list(
+        family = "Times New Roman",
+        color = I("black")
+      )
+    ),
+    xaxis = list(
+      title_text= "", 
+      tickangle = -45,
+      tickmode = "array",
+      tickvals = ~dt,
+      ticktext = ~paste0(
+        month.name[month(dt)], " - ",
+        year(dt)
+      )
+    ),
+    yaxis = list(
+      title.text = "Value",
+      range = c(min_y, max_y)
+    )
+  ) %>%
+    config(
+      edits = list(
+        annotationPosition = TRUE,
+        annotationTail = TRUE,
+        annotationText = TRUE
+      )
+    ) %>%
+    add_bars(
+      data = long_antibiotic_df,
+      x = ~dt,
+      y = ~AB,
+      type = "bar",
+      text = ~total_AB,
+      textposition = "outside",
+      color = ~Ab_cat,
+      marker = list(colors = c("green", "red")),
+      hoverinfo = "none",
+      showlegend = TRUE,
+      width = 777000000,
+      offset = 432000000,
+      opacity = 0.95
+    ) %>%
+    layout(barmode = "stack") %>%
+    add_annotations(
+      x = ~dt,
+      y = ~labelHeight,
+      showlegend = FALSE,
+      text = ~paste0(round(100*AB/total_AB), "%\n", Ab_cat),
+      showarrow = FALSE,
+      xshift = 40
+    ) %>% 
+    add_bars(
+      data = long_morbidity_df,
+      x = ~dt,
+      y = ~nr,
+      type = "bar",
+      color = ~morbidity,
+      hoverinfo = "none",
+      showlegend = TRUE,
+      width = 777000000,
+      offset = 0,
+      opacity = 0.95
+    ) %>%
+    layout(barmode = "stack") %>%
+    add_annotations(
+      x = ~dt,
+      y = ~labelHeight,
+      showlegend = FALSE,
+      text = ~paste0(nr, "\n", morbidity),
+      showarrow = FALSE,
+      xshift = 20
+    ) %>% 
+    add_lines(
+      data = cleaned_df,
+      x = ~dt,
+      y = ~AB_per_consult_mor/100,
+      showlegend = FALSE,
+      yaxis = "y2",
+      color = I("darkblue"),
+      span = I(1),
+      text = ~paste0(AB_per_consult_mor, 
+                     "% AB per morbidities in\n", 
+                     month.abb[month(dt)], "-", year(dt)),
+      hoverinfo = "text"
+    ) %>% 
+    layout(
+      yaxis2 = list(
+        tickfont = list(color = "black"),
+        overlaying = "y",
+        side = "right",
+        title = "<b>Percentage %</b>",
+        range = c(-0.005, 2),
+        tickformat = ".0%"),
+      font = list(
+        family = "Times New Roman"
+      ),
+      showlegend = TRUE
+    )
+  return(fig)
+}
 
 # defining function to plot the ratio of (AB and analgesics to total consultaion)
 # will need 4 arguments df_isy dataframe containg course from isystock
