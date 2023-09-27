@@ -675,7 +675,9 @@ plot_AB_consult_mor <- function(df_isy, df_hmis, df_mor, hf,age_cat){
 # will need 4 arguments df_isy dataframe containg course from isystock
 # df_hmis dataframe contining consultation data from HMIS
 # hf the health facility name and True for adult age group
-plot_all <- function(df_course_isy_m, df_hmis, df_hmis_mor, hf,age_cat, min_y, max_y){
+plot_all <- function(df_course_isy_m, df_hmis, df_hmis_mor, 
+                     hf,age_cat, min_y, max_y, 
+                     maxPer, startdate, enddate){
   
   cleaned_df <-
     df_course_isy_m %>%
@@ -692,8 +694,8 @@ plot_all <- function(df_course_isy_m, df_hmis, df_hmis_mor, hf,age_cat, min_y, m
     mutate(
       dt = make_date(year = as.numeric(year), month = as.numeric(month), day = 15)
     ) %>% 
-    filter(dt > '2022-06-01') %>%
-    filter(dt < '2023-07-01') %>% 
+    filter(dt > startdate) %>%
+    filter(dt < enddate) %>% 
     inner_join(
       .,
       df_hmis,
@@ -785,7 +787,7 @@ plot_all <- function(df_course_isy_m, df_hmis, df_hmis_mor, hf,age_cat, min_y, m
       unit, dt, total_AB, Access, Watch
     ) %>% 
     mutate(
-      dt = dt + 5
+      dt = dt + 1
     ) %>% 
     pivot_longer(
       cols = c(Access, Watch),
@@ -811,7 +813,7 @@ plot_all <- function(df_course_isy_m, df_hmis, df_hmis_mor, hf,age_cat, min_y, m
   fig <-
     cleaned_df %>% 
     mutate(
-      dt = dt - 6
+      dt = dt - 10
     ) %>% 
     plot_ly(x = ~dt) %>%
     add_bars(
@@ -826,8 +828,8 @@ plot_all <- function(df_course_isy_m, df_hmis, df_hmis_mor, hf,age_cat, min_y, m
       textposition = "outside",
       hoverinfo = "none",
       showlegend = TRUE,
-      width = 777000000,
-      offset = -432000000,
+      width = 600000000,
+      offset = 0,
       opacity = 0.95
     ) %>% 
     # add_lines(
@@ -863,11 +865,12 @@ plot_all <- function(df_course_isy_m, df_hmis, df_hmis_mor, hf,age_cat, min_y, m
     ),
     xaxis = list(
       title_text= "", 
-      tickangle = -45,
+     # tickangle = -45,
+      ticklabelposition = "outside bottom",
       tickmode = "array",
-      tickvals = ~dt,
+      tickvals = ~(dt + 15),
       ticktext = ~paste0(
-        month.name[month(dt)], " - ",
+        month.name[month(dt)], "\n",
         year(dt)
       )
     ),
@@ -891,11 +894,11 @@ plot_all <- function(df_course_isy_m, df_hmis, df_hmis_mor, hf,age_cat, min_y, m
       text = ~total_AB,
       textposition = "outside",
       color = ~Ab_cat,
-      marker = list(colors = c("green", "red")),
+      colors = c("green", "red"),
       hoverinfo = "none",
       showlegend = TRUE,
-      width = 777000000,
-      offset = 432000000,
+      width = 900000000,
+      offset = 552000000,
       opacity = 0.95
     ) %>%
     layout(barmode = "stack") %>%
@@ -905,7 +908,10 @@ plot_all <- function(df_course_isy_m, df_hmis, df_hmis_mor, hf,age_cat, min_y, m
       showlegend = FALSE,
       text = ~paste0(round(100*AB/total_AB), "%\n", Ab_cat),
       showarrow = FALSE,
-      xshift = 40
+      xshift = 34,
+      font=list(
+        family = "Times New Roman", size=8, color=I("black")
+      )
     ) %>% 
     add_bars(
       data = long_morbidity_df,
@@ -915,8 +921,8 @@ plot_all <- function(df_course_isy_m, df_hmis, df_hmis_mor, hf,age_cat, min_y, m
       color = ~morbidity,
       hoverinfo = "none",
       showlegend = TRUE,
-      width = 777000000,
-      offset = 0,
+      width = 900000000,
+      offset = -260000000,
       opacity = 0.95
     ) %>%
     layout(barmode = "stack") %>%
@@ -926,13 +932,17 @@ plot_all <- function(df_course_isy_m, df_hmis, df_hmis_mor, hf,age_cat, min_y, m
       showlegend = FALSE,
       text = ~paste0(nr, "\n", morbidity),
       showarrow = FALSE,
-      xshift = 20
+      xshift = 6,
+      font=list(
+        family = "Times New Roman", size=8, color=I("black")
+      )
     ) %>% 
     add_lines(
       data = cleaned_df,
       x = ~dt,
       y = ~AB_per_consult_mor/100,
-      showlegend = FALSE,
+      showlegend = TRUE,
+      name = "AB percentage to morbidities",
       yaxis = "y2",
       color = I("darkblue"),
       span = I(1),
@@ -947,13 +957,27 @@ plot_all <- function(df_course_isy_m, df_hmis, df_hmis_mor, hf,age_cat, min_y, m
         overlaying = "y",
         side = "right",
         title = "<b>Percentage %</b>",
-        range = c(-0.005, 2),
+        range = c(-0.005, maxPer),
         tickformat = ".0%"),
-      font = list(
-        family = "Times New Roman"
+      font=list(
+        family = "Times New Roman", size=10, color=I("black")
       ),
-      showlegend = TRUE
-    )
+      showlegend = TRUE,
+      legend = list(
+          x= 0.7,
+          y= 1.1,
+          xanchor='center',
+          yanchor='top',
+          bgcolor= 'rgba(0,0,0,0)',
+          bordercolor = I("black"),
+          borderwidth = 1,
+          orientation = 'h',
+          font=list(
+            family = "Times New Roman", size=10, color=I("black")
+            )
+          ),
+      autosize = F, width = 1000, height = 550
+    ) 
   return(fig)
 }
 
